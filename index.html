@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Генерация графика из JSON</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+
+    <h1>График с данными из JSON</h1>
+
+    <!-- Чекбоксы для выбора категорий -->
+    <div id="categoriesDiv"></div>
+
+    <!-- Место для отображения графика -->
+    <canvas id="myChart" width="400" height="200"></canvas>
+
+    <script>
+        // Глобальная переменная для графика
+        let chart;
+
+        // Функция для загрузки JSON-файла и построения графика
+        function loadAndRenderChart() {
+            fetch('data.json')
+                .then(response => response.json())
+                .then(jsonData => {
+                    const categories = jsonData.categories;
+                    const dates = jsonData.dates;
+                    const viewsData = jsonData.data;
+
+                    // Динамическое создание чекбоксов для выбора категорий
+                    const categoriesDiv = document.getElementById("categoriesDiv");
+                    categoriesDiv.innerHTML = ""; // Очистим старые чекбоксы
+                    categories.forEach((category, index) => {
+                        const checkbox = document.createElement("input");
+                        checkbox.type = "checkbox";
+                        checkbox.id = "category-" + index;
+                        checkbox.value = category;
+                        checkbox.checked = true;
+                        checkbox.addEventListener("change", updateChart);
+                        categoriesDiv.appendChild(checkbox);
+                        categoriesDiv.appendChild(document.createTextNode(category));
+                        categoriesDiv.appendChild(document.createElement("br"));
+                    });
+
+                    // Функция обновления графика на основе выбранных категорий
+                    let selectedCategories = categories.slice(); // Изначально все категории выбраны
+
+                    function updateChart() {
+                        selectedCategories = categories.filter((category, index) => {
+                            const checkbox = document.getElementById("category-" + index);
+                            return checkbox.checked;
+                        });
+
+                        const selectedData = viewsData.filter((row, index) => selectedCategories.includes(categories[index]));
+
+                        // Подготовка данных для графика
+                        const chartData = {
+                            labels: dates,
+                            datasets: selectedData.map((data, index) => ({
+                                label: categories[index],
+                                data: data,
+                                borderColor: getRandomColor(),
+                                fill: false
+                            }))
+                        };
+
+                        if (chart) {
+                            chart.destroy(); // Удаляем старый график
+                        }
+
+                        // Строим новый график
+                        chart = new Chart(document.getElementById("myChart"), {
+                            type: "line",
+                            data: chartData,
+                            options: {
+                                responsive: true,
+                                plugins: {
+                                    title: {
+                                        display: true,
+                                        text: 'Просмотры по выбранным категориям'
+                                    },
+                                    tooltip: {
+                                        mode: 'index',
+                                        intersect: false,
+                                    }
+                                }
+                            }
+                        });
+                    }
+
+                    updateChart(); // Первоначальная отрисовка графика
+                })
+                .catch(error => console.error("Ошибка загрузки JSON:", error));
+        }
+
+        // Генерация случайного цвета для линий на графике
+        function getRandomColor() {
+            const letters = "0123456789ABCDEF";
+            let color = "#";
+            for (let i = 0; i < 6; i++) {
+                color += letters[Math.floor(Math.random() * 16)];
+            }
+            return color;
+        }
+
+        // Загружаем и отображаем график при загрузке страницы
+        document.addEventListener("DOMContentLoaded", loadAndRenderChart);
+    </script>
+
+</body>
+</html>
